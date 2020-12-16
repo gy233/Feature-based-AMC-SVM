@@ -1,10 +1,5 @@
 # -*- coding: utf-8 -*-
 '''
-accuracy:
-countd much better than 100*np.var(histd)
-100*np.var(histd) is necessary when n1mf100m
-counta and 100*np.var(hista) are simular
-
 AUTHOR: GUYU
 AT HUANGDU SCIENCE AND TECHNOLOGY COLLEGE
 2020
@@ -18,11 +13,11 @@ import xlwt,xlrd
 from xlutils.copy import copy
 
 def ReadFile(filepath,size):
-  print(filepath)
+	print(filepath)
   binfile = open(filepath, 'rb')
   s = os.path.getsize(filepath)
   if size > s:
-  size = s
+    size = s
   data = struct.unpack('f'*size,binfile.read(4*size))
   binfile.close()
   return data
@@ -38,14 +33,15 @@ def countpeak(histd,n_group):
           count=count+1
   return count
 
-route = '/home/guyu/tongji/SOMNN+SVM/simdata_agc/n3160mf200m/'
+route = '/home/guyu/tongji/SOMNN+SVM/simdata_agc/n10mf200m/'
+route = '/home/guyu/tongji/SOMNN+SVM/simdata_withoutagc/n10mf200m/'
 #route = '/home/guyu/tongji/SOMNN+SVM/data/n316mf0m/'
 #route = '/home/guyu/tongji/SOMNN+SVM/data/real_agc/'
 #route = '/home/guyu/tongji/SOMNN+SVM/data/real_without_agc/'
 filenamer = ['BPSK','QPSK','QAM16','QAM64','QAM256','GMSK','OFDM']
 filetype = '.bin'
 plotflag = 1
-filterflag = 1
+filterflag = 0
 filteraflag = 1
 category = 7
 n_sample = 3000*2
@@ -58,13 +54,14 @@ group = np.linspace(0,1,n_group+1)
 data = [[]]*category
 train_n = [[]]*category
 sim_n = [[]]*category
-n_features=4
+n_features=6
 tempmaxtrain=np.zeros((category,n_features))
 tempmaxsim=np.zeros((category,n_features))
 N=5 #change N for better performance
 weights=np.hanning(N)
 weightsphase=np.hanning(5)
 weightsfreq=np.hanning(25)
+tao=2
 print route
 for j in range(0,category):
   data[j] = (ReadFile(route+filenamer[j]+filetype,n_sample*ndataset))
@@ -97,7 +94,18 @@ for j in range(0,category):
   
   histd = histd/float(histd.max())
   hista = hista/float(hista.max())
-  temp = np.hstack((countd,100*np.var(hista),100*np.var(histd),100*np.var(freqhanning)))#remove counta,np.mean(distance[0])
+  
+  d1=np.array(d[0])
+  d1=d1[0]
+  d1=d1[0:len(d1)-tao]
+  d2=np.array(d[0])
+  d2=d2[0]
+  d2=d2[tao:len(d2)]
+  m21=np.mean(d1*np.conj(d2))
+  m21_a=np.abs(m21)
+  m21_p=(np.angle(m21)+np.pi)/(2*np.pi)
+  
+  temp = np.hstack((countd,100*np.var(hista),100*np.var(histd),100*np.var(freqhanning),100*m21_a,10*m21_p))#remove counta,np.mean(distance[0])
   for i in range(1,traindataset):
     histd, bin_edges = np.histogram(distance[i],bins=group)
     if filterflag:
@@ -110,7 +118,17 @@ for j in range(0,category):
     
     histd = histd/float(histd.max())
     hista = hista/float(hista.max())
-    temp = np.vstack((temp,np.hstack((countd,100*np.var(hista),100*np.var(histd),100*np.var(freqhanning)))))#remove counta,np.mean(distance[i])
+    
+    d1=np.array(d[i])
+    d1=d1[0]
+    d1=d1[0:len(d1)-tao]
+    d2=np.array(d[i])
+    d2=d2[0]
+    d2=d2[tao:len(d2)]
+    m21=np.mean(d1*np.conj(d2))
+    m21_a=np.abs(m21)
+    m21_p=(np.angle(m21)+np.pi)/(2*np.pi)
+    temp = np.vstack((temp,np.hstack((countd,100*np.var(hista),100*np.var(histd),100*np.var(freqhanning),100*m21_a,10*m21_p))))#remove counta,np.mean(distance[i])
   tempmaxtrain[j]=np.max(temp,axis=0)
   train_n[j] = temp
     
@@ -121,7 +139,7 @@ for j in range(0,category):
   freq = np.abs(np.fft.fft(d))
   freq = freq/float(freq.max())
   freqhanning =  np.zeros((np.size(freq,0),np.size(freq,1)))
-  for i in range(0,traindataset):
+  for i in range(0,simdataset):
     freqhanning[i]=np.convolve(weightsfreq/weightsfreq.sum(),freq[i],'same')
   freqhanning = freqhanning/float(freqhanning.max())
   
@@ -142,7 +160,18 @@ for j in range(0,category):
   
   histd = histd/float(histd.max())
   hista = hista/float(hista.max())
-  temp = np.hstack((countd,100*np.var(hista),100*np.var(histd),100*np.var(freqhanning)))#remove counta,np.mean(distance[0])
+  
+  d1=np.array(d[0])
+  d1=d1[0]
+  d1=d1[0:len(d1)-tao]
+  d2=np.array(d[0])
+  d2=d2[0]
+  d2=d2[tao:len(d2)]
+  m21=np.mean(d1*np.conj(d2))
+  m21_a=np.abs(m21)
+  m21_p=(np.angle(m21)+np.pi)/(2*np.pi)
+  
+  temp = np.hstack((countd,100*np.var(hista),100*np.var(histd),100*np.var(freqhanning),100*m21_a,10*m21_p))#remove counta,np.mean(distance[0])
   for i in range(1,simdataset):
     histd, bin_edges = np.histogram(distance[i],bins=group)
     if filterflag:
@@ -155,7 +184,18 @@ for j in range(0,category):
   
     histd = histd/float(histd.max())
     hista = hista/float(hista.max())
-    temp = np.vstack((temp,np.hstack((countd,100*np.var(hista),100*np.var(histd),100*np.var(freqhanning)))))#remove counta,np.mean(distance[i])
+    
+    d1=np.array(d[i])
+    d1=d1[0]
+    d1=d1[0:len(d1)-tao]
+    d2=np.array(d[i])
+    d2=d2[0]
+    d2=d2[tao:len(d2)]
+    m21=np.mean(d1*np.conj(d2))
+    m21_a=np.abs(m21)
+    m21_p=(np.angle(m21)+np.pi)/(2*np.pi)
+
+    temp = np.vstack((temp,np.hstack((countd,100*np.var(hista),100*np.var(histd),100*np.var(freqhanning),100*m21_a,10*m21_p))))#remove counta,np.mean(distance[i])
   tempmaxsim[j]=np.max(temp,axis=0)
   sim_n[j] = temp
 
@@ -197,11 +237,11 @@ for j in range(0,category):
     print('y='+str(i)+',ytest='+str(j)+': ',np.sum(np.logical_and(y==i, ytest==j))/(float(simdataset)))
 
 if 'simdata_agc' in route:
-  xls_path = '/home/guyu/tongji/SOMNN+SVM/result/histcount_result_agc.xls'
+  xls_path = '/home/guyu/tongji/SOMNN+SVM/result/histcumulant_result_agc.xls'
 elif 'simdata_withoutagc' in route:
-  xls_path = '/home/guyu/tongji/SOMNN+SVM/result/histcount_result_withoutagc.xls'
+  xls_path = '/home/guyu/tongji/SOMNN+SVM/result/histcumulant_result_withoutagc.xls'
 else:
- xls_path = '/home/guyu/tongji/SOMNN+SVM/result/histcount_result.xls'
+ xls_path = '/home/guyu/tongji/SOMNN+SVM/result/histcumulant_result.xls'
 if not os.path.exists(xls_path):
   book = xlwt.Workbook(encoding='utf-8')
   book.add_sheet('Sheet1')
@@ -224,4 +264,9 @@ if not(sheetname in wb.sheet_names()):
   print(sheetname+' has been added successfully')
 else:
   print(sheetname+' exists in the file')
-
+'''
+for root,dirs,files in os.walk('/home/guyu/tongji/SOMNN+SVM/data'):
+     for dir in dirs:
+             print dir
+             print(os.path.join(root,dir))
+'''
